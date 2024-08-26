@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 from PIL import Image
 import pytesseract
+import re
+from typing import List, Tuple
 
 def display_image(image):
     if isinstance(image, Image.Image):
@@ -97,50 +99,45 @@ def img2txt(img: np.ndarray) -> str:
 
     return texto
 
-
-def insertar_datos_paginas(collection, pagina, idx: int) -> None:
+def extraer_filas(imagen: np.ndarray) -> List[List[np.ndarray]]:
     """
-    Inserta datos extraídos de un archivo PDF en una colección de base de datos.
+    Divide una imagen de tabla en una lista de listas, donde cada sublista contiene dos celdas (imágenes).
+
+    Args:
+        imagen (np.ndarray): La imagen de la tabla.
+
+    Returns:
+        List[List[np.ndarray]]: Una lista de listas, donde cada sublista contiene dos imágenes correspondientes a las celdas.
+    """
+    filas = crop_image_by_lines(imagen)[1:-1]
+    celdas_por_fila = [crop_image_by_lines(fila, False)[1:-1] for fila in filas]
+    return [celdas for celdas in celdas_por_fila if len(celdas) == 2]
+
+def insertar_fila_en_bd(collection, celdas: List[np.ndarray], idx: int) -> int:
+    """
+    Inserta en la base de datos una lista de celdas extraídas de una tabla.
 
     Args:
         collection: La colección de la base de datos donde se insertarán los datos.
-                    Debe tener un método `add` para agregar documentos.
-        path_pdf (str): La ruta al archivo PDF del cual se extraerán los datos.
+        celdas (List[List[np.ndarray]]): Una lista de listas que contiene las celdas extraídas de la tabla.
         idx (int): Un identificador único para cada documento que se insertará en la colección.
 
     Returns:
-        None: Esta función no retorna ningún valor. Los datos se insertan directamente en la colección.
+        int: El nuevo índice actualizado después de la inserción.
     """
-
-    image = np.array(pagina)  # Convierte la imagen de la página a un arreglo de numpy
-
-    filas = crop_image_by_lines(image)[1:-1]  # Recorta la imagen en líneas y elimina la primera y última
-
-    for fila in filas:
-        celdas = crop_image_by_lines(fila, False)[1:-1]  # Recorta la fila en celdas y elimina la primera y última
-
-        if len(celdas) != 2:  # Verifica que haya exactamente dos celdas
-            continue  # Si no, continúa con la siguiente fila
-
-        if not collection:
-            global lenfilas
-            lenfilas += 1
-
-            continue
-
-        enfermedad = img2txt(celdas[0])  # Extrae el texto de la primera celda (enfermedad)
-
-        data = img2txt(celdas[1])  # Extrae el texto de la segunda celda (data)
-
-
-        # Agrega el documento a la colección con la enfermedad y los datos extraídos
+    for celda in celdas:
+        enfermedad = img2txt(celda[0])
+        data = img2txt(celda[1])
         collection.add(documents=[enfermedad], 
                         metadatas=[{"enfermedad": enfermedad, "data": data}], 
                         ids=[str(idx)])
         idx += 1
-               
-    return idx 
+    return idx
 
+
+def encontrar_puntos(texto: str) -> List[Tuple[str, int]]:
+    patron = r'([A-Z]{1,2}) ?(\d{2})'
+    return [(letras, int(numeros)) for letras, numeros in re.findall(patron, texto)]
 
 
 if __name__ == "__main__":
@@ -150,7 +147,9 @@ if __name__ == "__main__":
 
     for pagina in paginas:
         pagina = cv2.cvtColor(pagina, cv2.COLOR_BGR2GRAY)  # Convierte la imagen a escala de grises
-        insertar_datos_paginas(None, pagina, 0) # 37 filas
+        filas = extraer_filas(pagina)
+        for fila in filas:
+            idx = insertar_fila_en_bd(None, fila, idx) # 37 filas
 
     print(lenfilas)
     

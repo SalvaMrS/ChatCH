@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Buscador de Enfermedades</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #ffffff, #f5f5dc); /* Degradado blanco a amarillo claro */
+            background-size: cover; /* Asegura que el degradado cubra todo el contenedor */
+            background-repeat: no-repeat;
+            position: relative;
+        }
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Coloca la imagen detrás del contenido */
+        }
+        .background-image::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('images/fondo.png'); /* Imagen de fondo */
+            background-size: contain; /* Ajusta la imagen para que se ajuste completamente dentro del contenedor */
+            background-position: center; /* Centra la imagen en el contenedor */
+            background-repeat: no-repeat; /* Evita que la imagen se repita si es más pequeña que el contenedor */
+            opacity: 0.35; /* Opacidad del 60% */
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            z-index: 1; /* Asegura que el contenido esté encima de la imagen de fondo */
+        }
+        .column {
+            padding: 10px;
+        }
+        #search-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #search-column .title {
+            font-size: 50px;
+            font-weight: bold;
+            margin-bottom: 10px; /* Espacio debajo del título */
+            text-align: center;
+            width: 100%;
+        }
+        #detail-column {
+            flex: 2;
+        }
+        .button {
+            display: block;
+            margin: 5px 0;
+            width: 100%;
+        }
+        .details {
+            white-space: pre-wrap; /* Mantiene los saltos de línea */
+        }
+    </style>
+</head>
+<body>
+    <div class="background-image"></div>
+    <div class="container">
+        <div class="column" id="search-column">
+            <div class="title">DEQI</div>
+            <input type="text" id="query" placeholder="Ingresa tu búsqueda..."/>
+            <button id="search-button">🔍 Buscar</button>
+            <div id="results"></div>
+        </div>
+        <div class="column" id="detail-column">
+            <div id="details" class="details"></div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('search-button').addEventListener('click', performSearch);
+        document.getElementById('query').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        function performSearch() {
+            const query = document.getElementById('query').value;
+            fetch('/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query_text: query })
+            }).then(response => response.json()).then(data => {
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = '';
+                data.results.forEach(result => {
+                    const button = document.createElement('button');
+                    button.textContent = result.enfermedad;
+                    button.className = 'button';
+                    button.onclick = () => showDetails(result.enfermedad);
+                    resultsDiv.appendChild(button);
+                });
+            });
+        }
+
+        function showDetails(enfermedad) {
+            fetch(`/details?query_text=${encodeURIComponent(enfermedad)}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('details').textContent = data.details;
+            });
+        }
+    </script>
+</body>
+</html>

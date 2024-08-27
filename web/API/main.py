@@ -1,5 +1,5 @@
-# API/main.py
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import chromadb
@@ -8,13 +8,15 @@ from pathlib import Path
 
 app = FastAPI()
 
+# Servir archivos estáticos desde el directorio 'web'
+app.mount("/images", StaticFiles(directory="web/images"), name="images")
+
 client = chromadb.PersistentClient(path="./databases/chromadb")
 collection = client.get_collection(name="Enfermedades")
 
 class QueryModel(BaseModel):
     query_text: str
 
-# Diccionario para almacenar los resultados de búsqueda
 search_results = {}
 
 @app.get("/", response_class=HTMLResponse)
@@ -25,10 +27,7 @@ async def get_home():
 @app.post("/search")
 async def search(query: QueryModel):
     corregido = corregir_errores(query.query_text)
-    resultados = collection.query(
-        query_texts=[corregido],
-        n_results=10
-    )
+    resultados = collection.query(query_texts=[corregido], n_results=10)
 
     documentos = resultados.get('documents', [])[0]
     metadatas = resultados.get('metadatas', [])[0]

@@ -1,0 +1,12 @@
+# Creacion de la imagen
+sudo docker build -t chatch -f docker/Dockerfile .
+
+# Creacion del archivo .tar
+sudo docker save -o chatch.tar chatch
+
+# Carga del .tar 
+sudo docker load -i chatch.tar
+
+# Inicio del servidor
+sudo docker run -d -p 8000:8000 --name chatch chatch
+

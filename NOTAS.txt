@@ -1,0 +1,17 @@
+apnea del sueño
+rodilla vaga
+rodilla vara
+
+EL CONTENEDOR NO DEBE USAR INTERNET A LA HORA DE INICIAR
+
+visor de texto debe ser en español (apnea del sueño aparece como del suefio)
+al duplicarse la enfermedad se guarda una sola (la ultima)
+no aparecen las enfermedades si esta guardada como una frase más larga (si buscas acnea no aparece apnea del sueño)
+
+reemplazar la division de imagenes en filas y columnas por corte en un lugar especifico
+(en vez de buscar donde esta la linea divisoria de celdas seleccion de forma manual las imagenes)
+
+agregar musica de fondo
+agregar linls a imagenes de los puntos
+
+

@@ -1,4 +1,5 @@
 from pdf2image import convert_from_path
+from sentence_transformers import SentenceTransformer
 import cv2
 import numpy as np
 from PIL import Image
@@ -37,7 +38,6 @@ def detect_line(image: np.ndarray, horizontal: bool = True) -> list[int]:
     
     return darkest_indices.tolist()
 
-
 def crop_image_by_lines(image: np.ndarray, horizontal: bool = True) -> list[np.ndarray]:
     """
     Recorta una imagen en secciones basadas en líneas detectadas.
@@ -55,7 +55,7 @@ def crop_image_by_lines(image: np.ndarray, horizontal: bool = True) -> list[np.n
     cropped_images = []
     dimension = image.shape[0] if horizontal else image.shape[1]  # Obtiene la dimensión correspondiente
 
-    lines = sorted(set(detect_line(image, horizontal)))
+    lines = sorted(set(detect_line(image, horizontal))) if horizontal else [160, 539, 548, 1600]
     lines.append(dimension)
 
     # Recortar la imagen según las líneas
@@ -77,8 +77,6 @@ def crop_image_by_lines(image: np.ndarray, horizontal: bool = True) -> list[np.n
 
     return cropped_images
 
-
-
 def img2txt(img: np.ndarray) -> str:
     """
     Convierte una imagen en texto utilizando OCR (Reconocimiento Óptico de Caracteres).
@@ -93,12 +91,11 @@ def img2txt(img: np.ndarray) -> str:
     """
     pil_img = Image.fromarray(img)  # Convierte el arreglo de numpy a una imagen PIL
 
-    texto = pytesseract.image_to_string(pil_img)  # Extrae el texto de la imagen usando Tesseract OCR
+    texto = pytesseract.image_to_string(pil_img, lang='spa')  # Extrae el texto de la imagen usando Tesseract OCR
 
     return texto
 
-
-def insertar_datos_paginas(collection, pagina, idx: int) -> None:
+def insertar_datos_paginas(collection, pagina, idx: int, model) -> None:
     """
     Inserta datos extraídos de un archivo PDF en una colección de base de datos.
 
@@ -111,6 +108,8 @@ def insertar_datos_paginas(collection, pagina, idx: int) -> None:
     Returns:
         None: Esta función no retorna ningún valor. Los datos se insertan directamente en la colección.
     """
+    ruta_local_modelo = './model_embeding/'  # Asegúrate de que la ruta sea correcta
+    model = SentenceTransformer(ruta_local_modelo)
 
     image = np.array(pagina)  # Convierte la imagen de la página a un arreglo de numpy
 
@@ -132,9 +131,9 @@ def insertar_datos_paginas(collection, pagina, idx: int) -> None:
 
         data = img2txt(celdas[1])  # Extrae el texto de la segunda celda (data)
 
-
         # Agrega el documento a la colección con la enfermedad y los datos extraídos
         collection.add(documents=[enfermedad], 
+                        embeddings=[model.encode(enfermedad).tolist()],
                         metadatas=[{"enfermedad": enfermedad, "data": data}], 
                         ids=[str(idx)])
         idx += 1
@@ -144,13 +143,17 @@ def insertar_datos_paginas(collection, pagina, idx: int) -> None:
 
 
 if __name__ == "__main__":
+    ruta_local_modelo = './model_embeding/'
+    model = SentenceTransformer(ruta_local_modelo)
+
     ruta = './databases/tratamientos/011-020.pdf'
     paginas = convert_from_path(ruta)
     lenfilas = 0
 
     for pagina in paginas:
+        pagina = np.array(pagina)
         pagina = cv2.cvtColor(pagina, cv2.COLOR_BGR2GRAY)  # Convierte la imagen a escala de grises
-        insertar_datos_paginas(None, pagina, 0) # 37 filas
+        insertar_datos_paginas(None, pagina, 0, model) # 37 filas
 
     print(lenfilas)
     

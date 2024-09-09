@@ -3,12 +3,10 @@ from transformers import AutoTokenizer
 import numpy as np
 import chromadb
 from tabulate import tabulate
-<<<<<<< Updated upstream
 
 # Configurar el cliente ChromaDB
 client = chromadb.PersistentClient(path="./db")
 collection = client.get_or_create_collection(name="Enfermedades")
-=======
 from spellchecker import SpellChecker
 
 class ONNXEmbeddingFunction:
@@ -59,7 +57,6 @@ embedding_function = ONNXEmbeddingFunction(model_path, tokenizer_path)
 # Configurar el cliente ChromaDB
 client = chromadb.PersistentClient(path="./databases/chromadb")
 collection = client.get_collection(name="Enfermedades", embedding_function=embedding_function)
->>>>>>> Stashed changes
 
 # Variable a buscar
 buscar_str = input("Ingrese la enfermedad: ")
@@ -77,9 +74,4 @@ for i in range(len(resultados['documents'][0])):
     data = resultados['metadatas'][0][i].get('data', 'No disponible')
     table.append()
 
-<<<<<<< Updated upstream
-
-print(tabulate(data, headers=["Enfermedad", "Data"], tablefmt="grid"))
-=======
 print(tabulate(table, headers=["Enfermedad", "Data"], tablefmt="grid"))
->>>>>>> Stashed changes

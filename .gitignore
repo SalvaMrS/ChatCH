@@ -1,7 +1,4 @@
-<<<<<<< Updated upstream
-/venv
-=======
 **/__pycache__/
 /venv
 /model_embeding
->>>>>>> Stashed changes
+/databases/chromadb/

@@ -1,6 +1,10 @@
 from funciones import *
+from sentence_transformers import SentenceTransformer
 import chromadb
 import os
+
+ruta_local_modelo = './model_embeding/'
+model = SentenceTransformer(ruta_local_modelo)
 
 # Configurar ChromaDB para usar SQLite como backend
 client = chromadb.PersistentClient(path="./databases/chromadb")
@@ -22,8 +26,9 @@ for archivo in archivos:
         if __name__ == "__main__":
             print(idx)
 
+        pagina = np.array(pagina)
         pagina = cv2.cvtColor(pagina, cv2.COLOR_BGR2GRAY)  # Convierte la imagen a escala de grises
-        idx = insertar_datos_paginas(collection, pagina, idx)
+        idx = insertar_datos_paginas(collection, pagina, idx, model)
 
 if __name__ == "__main__":
     print(collection.count())  # Imprime el conteo de documentos en la colección

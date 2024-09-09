@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -49,4 +47,3 @@ async def search(query: QueryModel):
 async def get_details(query_text: str):
     details = search_results.get(query_text, "Tratamiento no encontrado")
     return {"details": details}
->>>>>>> Stashed changes

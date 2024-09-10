@@ -31,7 +31,7 @@ buscar_str = input("Ingrese la enfermedad: ")
 # Realizar la consulta
 resultados = collection.query(
     query_embeddings=model.encode(buscar_str).tolist(),
-    n_results=3  # Cambia el número de resultados según tus necesidades
+    n_results=30  # Cambia el número de resultados según tus necesidades
 )
 
 table = []

@@ -5,13 +5,18 @@ from pydantic import BaseModel
 import chromadb
 from .funciones import corregir_errores
 from pathlib import Path
+from chromadb.utils import embedding_functions
 
 app = FastAPI()
 
 # Servir archivos estáticos desde el directorio 'web'
 app.mount("/images", StaticFiles(directory="web/images"), name="images")
 
-client = chromadb.PersistentClient(path="./databases/chromadb")
+# Especificar la ruta al modelo en la raíz del proyecto
+model_path = "./all-MiniLM-L6-v2/"
+embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=model_path)
+
+client = chromadb.PersistentClient(path="./databases/chromadb", embedding_function=embedding_function)
 collection = client.get_collection(name="Enfermedades")
 
 class QueryModel(BaseModel):

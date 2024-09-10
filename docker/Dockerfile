@@ -5,11 +5,18 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Copia las carpetas databases y web desde la raíz del repositorio al contenedor
-COPY databases /app/databases
-COPY web /app/web
+COPY ./databases /app/databases
+COPY ./web /app/web
 
-# Copia el entorno virtual al contenedor
-COPY venv /app/venv
+# Copia el archivo de requerimientos
+COPY ./requirements.txt /app/requirements.txt
+
+# Instala virtualenv y crea un entorno virtual dentro del contenedor
+RUN python3 -m venv /app/venv
+
+# Activa el entorno virtual e instala las dependencias
+RUN /app/venv/bin/pip install --upgrade pip && \
+    /app/venv/bin/pip install -r /app/requirements.txt
 
 # Define el comando por defecto que se ejecutará cuando inicie el contenedor
-CMD ["/app/venv/bin/uvicorn", "web.API.main:app", "--reload", "--host", "0.0.0.0"]
+CMD ["/app/venv/bin/uvicorn", "web.API.main:app", "--host", "0.0.0.0"]

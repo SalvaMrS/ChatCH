@@ -1,3 +1,4 @@
+from sentence_transformers import SentenceTransformer
 import chromadb
 from tabulate import tabulate
 from spellchecker import SpellChecker
@@ -17,6 +18,8 @@ def corregir_errores(frase):
     frase_corregida = ' '.join(palabras_corregidas)
     return frase_corregida
 
+ruta_local_modelo = './model_embeding/'  # Asegúrate de que la ruta sea correcta
+model = SentenceTransformer(ruta_local_modelo)
 
 # Configurar el cliente ChromaDB
 client = chromadb.PersistentClient(path="./databases/chromadb")
@@ -27,8 +30,8 @@ buscar_str = input("Ingrese la enfermedad: ")
 
 # Realizar la consulta
 resultados = collection.query(
-    query_texts=[corregir_errores(buscar_str)],
-    n_results=4  # Cambia el número de resultados según tus necesidades
+    query_embeddings=model.encode(buscar_str).tolist(),
+    n_results=3  # Cambia el número de resultados según tus necesidades
 )
 
 table = []
@@ -36,7 +39,6 @@ table = []
 for i in range(len(resultados['documents'][0])):
     enfermedad = resultados['documents'][0][i]
     data = resultados['metadatas'][0][i].get('data', 'No disponible')
-    table.append((enfermedad, data))
-
+    table.append([enfermedad, data]) 
 
 print(tabulate(table, headers=["Enfermedad", "Data"], tablefmt="grid"))

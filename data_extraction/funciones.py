@@ -1,4 +1,5 @@
 from pdf2image import convert_from_path
+from sentence_transformers import SentenceTransformer
 import cv2
 import numpy as np
 from PIL import Image
@@ -39,7 +40,6 @@ def detect_line(image: np.ndarray, horizontal: bool = True) -> list[int]:
     
     return darkest_indices.tolist()
 
-
 def crop_image_by_lines(image: np.ndarray, horizontal: bool = True) -> list[np.ndarray]:
     """
     Recorta una imagen en secciones basadas en líneas detectadas.
@@ -57,7 +57,7 @@ def crop_image_by_lines(image: np.ndarray, horizontal: bool = True) -> list[np.n
     cropped_images = []
     dimension = image.shape[0] if horizontal else image.shape[1]  # Obtiene la dimensión correspondiente
 
-    lines = sorted(set(detect_line(image, horizontal)))
+    lines = sorted(set(detect_line(image, horizontal))) if horizontal else [160, 539, 548, 1600]
     lines.append(dimension)
 
     # Recortar la imagen según las líneas
@@ -79,8 +79,6 @@ def crop_image_by_lines(image: np.ndarray, horizontal: bool = True) -> list[np.n
 
     return cropped_images
 
-
-
 def img2txt(img: np.ndarray) -> str:
     """
     Convierte una imagen en texto utilizando OCR (Reconocimiento Óptico de Caracteres).
@@ -95,25 +93,11 @@ def img2txt(img: np.ndarray) -> str:
     """
     pil_img = Image.fromarray(img)  # Convierte el arreglo de numpy a una imagen PIL
 
-    texto = pytesseract.image_to_string(pil_img)  # Extrae el texto de la imagen usando Tesseract OCR
+    texto = pytesseract.image_to_string(pil_img, lang='spa')  # Extrae el texto de la imagen usando Tesseract OCR
 
     return texto
 
-def extraer_filas(imagen: np.ndarray) -> List[List[np.ndarray]]:
-    """
-    Divide una imagen de tabla en una lista de listas, donde cada sublista contiene dos celdas (imágenes).
-
-    Args:
-        imagen (np.ndarray): La imagen de la tabla.
-
-    Returns:
-        List[List[np.ndarray]]: Una lista de listas, donde cada sublista contiene dos imágenes correspondientes a las celdas.
-    """
-    filas = crop_image_by_lines(imagen)[1:-1]
-    celdas_por_fila = [crop_image_by_lines(fila, False)[1:-1] for fila in filas]
-    return [celdas for celdas in celdas_por_fila if len(celdas) == 2]
-
-def insertar_fila_en_bd(collection, celdas: List[np.ndarray], idx: int) -> int:
+def insertar_datos_paginas(collection, pagina, idx: int, model) -> None:
     """
     Inserta en la base de datos una lista de celdas extraídas de una tabla.
 
@@ -125,10 +109,32 @@ def insertar_fila_en_bd(collection, celdas: List[np.ndarray], idx: int) -> int:
     Returns:
         int: El nuevo índice actualizado después de la inserción.
     """
-    for celda in celdas:
-        enfermedad = img2txt(celda[0])
-        data = img2txt(celda[1])
+    ruta_local_modelo = './model_embeding/'  # Asegúrate de que la ruta sea correcta
+    model = SentenceTransformer(ruta_local_modelo)
+
+    image = np.array(pagina)  # Convierte la imagen de la página a un arreglo de numpy
+
+    filas = crop_image_by_lines(image)[1:-1]  # Recorta la imagen en líneas y elimina la primera y última
+
+    for fila in filas:
+        celdas = crop_image_by_lines(fila, False)[1:-1]  # Recorta la fila en celdas y elimina la primera y última
+
+        if len(celdas) != 2:  # Verifica que haya exactamente dos celdas
+            continue  # Si no, continúa con la siguiente fila
+
+        if not collection:
+            global lenfilas
+            lenfilas += 1
+
+            continue
+
+        enfermedad = img2txt(celdas[0])  # Extrae el texto de la primera celda (enfermedad)
+
+        data = img2txt(celdas[1])  # Extrae el texto de la segunda celda (data)
+
+        # Agrega el documento a la colección con la enfermedad y los datos extraídos
         collection.add(documents=[enfermedad], 
+                        embeddings=[model.encode(enfermedad).tolist()],
                         metadatas=[{"enfermedad": enfermedad, "data": data}], 
                         ids=[str(idx)])
         idx += 1
@@ -141,15 +147,17 @@ def encontrar_puntos(texto: str) -> List[Tuple[str, int]]:
 
 
 if __name__ == "__main__":
+    ruta_local_modelo = './model_embeding/'
+    model = SentenceTransformer(ruta_local_modelo)
+
     ruta = './databases/tratamientos/011-020.pdf'
     paginas = convert_from_path(ruta)
     lenfilas = 0
 
     for pagina in paginas:
+        pagina = np.array(pagina)
         pagina = cv2.cvtColor(pagina, cv2.COLOR_BGR2GRAY)  # Convierte la imagen a escala de grises
-        filas = extraer_filas(pagina)
-        for fila in filas:
-            idx = insertar_fila_en_bd(None, fila, idx) # 37 filas
+        insertar_datos_paginas(None, pagina, 0, model) # 37 filas
 
     print(lenfilas)
     

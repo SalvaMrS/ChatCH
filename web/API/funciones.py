@@ -1,6 +1,7 @@
 from spellchecker import SpellChecker
 
 def cargar_diccionario_medico(spell, archivo):
+    # Leer términos médicos del archivo
     with open(archivo, 'r', encoding='utf-8') as f:
         terminos_medicos = [linea.strip() for linea in f]
     spell.word_frequency.load_words(terminos_medicos)
